@@ -6,6 +6,7 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { authApi, getErrorMessage } from '@/lib/api'
 import { saveTokens, getRole } from '@/lib/auth'
+import { getDefaultDashboard } from '@/utils/auth'
 import AuthShell from '@/components/ui/AuthShell'
 import { Eye, EyeOff } from 'lucide-react'
 
@@ -29,7 +30,7 @@ function LoginForm() {
       const { data } = await authApi.login(form)
       saveTokens(data.access_token, data.refresh_token)
       toast.success('Welcome back!')
-      router.push(getRole() === 'recruiter' ? '/recruiter/dashboard' : '/dashboard')
+      router.push(getDefaultDashboard(getRole() || 'candidate'))
     } catch (err: unknown) {
       toast.error(getErrorMessage(err))
     } finally {
