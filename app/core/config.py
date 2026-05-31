@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     smtp_use_tls:           bool = True
     # Comma-separated: only these addresses get mail (empty = everyone)
     email_allowlist:                    str = ""
-    email_allowlist_enforce_registration: bool = True
+    email_allowlist_enforce_registration: bool = False
 
     # ── Phase 3: Auto-matching ─────────────────────────────────────────────────
     auto_match_enabled:        bool = True

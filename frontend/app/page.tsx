@@ -300,7 +300,7 @@ export default function LandingPage() {
             onMouseLeave={e => (e.currentTarget.style.color = '#94a3b8')}>
             Sign in
           </Link>
-          <Link href="/register" style={{
+          <Link href="/signup" style={{
             background: 'linear-gradient(135deg,#7c3aed,#2563eb)', color: 'white',
             textDecoration: 'none', fontSize: 14, fontWeight: 600, padding: '8px 20px',
             borderRadius: 10, boxShadow: '0 4px 20px rgba(124,58,237,0.4)', transition: 'all 0.2s',
@@ -351,7 +351,7 @@ export default function LandingPage() {
 
         {/* CTA buttons */}
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center', animation: 'fadeSlideDown 0.8s 0.3s ease both' }}>
-          <Link href="/register" style={{
+          <Link href="/signup" style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
             background: 'linear-gradient(135deg,#7c3aed,#2563eb)',
             color: 'white', textDecoration: 'none', fontSize: 16, fontWeight: 700,
@@ -459,7 +459,7 @@ export default function LandingPage() {
             Join thousands of candidates and recruiters who've found their perfect match.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/register?role=candidate" style={{
+            <Link href="/signup?role=candidate" style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               background: 'linear-gradient(135deg,#7c3aed,#2563eb)', color: 'white',
               textDecoration: 'none', fontSize: 15, fontWeight: 700,
@@ -471,7 +471,7 @@ export default function LandingPage() {
               onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
               👤 I'm a Candidate
             </Link>
-            <Link href="/register?role=recruiter" style={{
+            <Link href="/signup?role=recruiter" style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               background: 'rgba(255,255,255,0.08)', color: '#e2e8f0',
               textDecoration: 'none', fontSize: 15, fontWeight: 600,

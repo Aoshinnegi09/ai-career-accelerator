@@ -1,127 +1,180 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
-import { authApi, getErrorMessage } from '@/lib/api'
+
 import AuthShell from '@/components/ui/AuthShell'
-import { User, Briefcase, Mail } from 'lucide-react'
+import InputField from '@/components/auth/InputField'
+import ErrorMessage from '@/components/auth/ErrorMessage'
+import SuccessMessage from '@/components/auth/SuccessMessage'
+import PasswordStrengthIndicator from '@/components/auth/PasswordStrengthIndicator'
+import RoleSelector from '@/components/auth/RoleSelector'
+import LoadingSpinner from '@/components/common/LoadingSpinner'
+import { authApi, getErrorMessage } from '@/lib/api'
+
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const hasUpper = (v: string) => /[A-Z]/.test(v)
+const hasDigit = (v: string) => /\d/.test(v)
 
 function RegisterForm() {
+  const router = useRouter()
   const params = useSearchParams()
-  const [form, setForm] = useState({ email: '', password: '', full_name: '', role: 'candidate' })
+
+  const [form, setForm] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    full_name: '',
+    role: 'candidate' as 'candidate' | 'recruiter',
+  })
+  const [termsAccepted, setTermsAccepted] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [done, setDone] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   useEffect(() => {
-    if (params.get('role') === 'recruiter') setForm(f => ({ ...f, role: 'recruiter' }))
+    if (params.get('role') === 'recruiter') {
+      setForm((prev) => ({ ...prev, role: 'recruiter' }))
+    }
   }, [params])
+
+  const validationErrors = useMemo(() => {
+    const next: Record<string, string> = {}
+    if (form.email && !emailPattern.test(form.email)) next.email = 'Please enter a valid email address.'
+    if (form.password && form.password.length < 8) next.password = 'Password must be at least 8 characters.'
+    if (form.password && !hasUpper(form.password)) next.password = 'Password must contain at least one uppercase letter.'
+    if (form.password && !hasDigit(form.password)) next.password = 'Password must contain at least one digit.'
+    if (form.confirmPassword && form.confirmPassword !== form.password) next.confirmPassword = 'Passwords do not match.'
+    if (form.full_name && form.full_name.trim().length < 2) next.full_name = 'Full name must be at least 2 characters.'
+    if (!termsAccepted) next.terms = 'Please accept the terms and conditions.'
+    return next
+  }, [form, termsAccepted])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
+    setSuccess(null)
+
+    if (!form.full_name.trim() || !form.email.trim() || !form.password || !form.confirmPassword) {
+      setError('Please fill in all required fields.')
+      return
+    }
+
+    if (Object.keys(validationErrors).length > 0) {
+      setError(validationErrors[Object.keys(validationErrors)[0]])
+      return
+    }
+
     setLoading(true)
     try {
-      const { data } = await authApi.register(form)
-      setDone(true)
-      toast.success(data.message || 'Check your email to verify your account.')
+      const payload = {
+        full_name: form.full_name.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        role: form.role,
+      }
+      const { data } = await authApi.register(payload)
+
+      setSuccess(data.message || 'Account created successfully. Redirecting to login...')
+      toast.success('Account created successfully')
+      setForm({ email: '', password: '', confirmPassword: '', full_name: '', role: 'candidate' })
+      setTermsAccepted(false)
+      setTimeout(() => router.push('/login'), 1200)
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err))
+      const message = getErrorMessage(err)
+      setError(message)
+      toast.error(message)
     } finally {
       setLoading(false)
     }
   }
 
-  if (done) {
-    return (
-      <AuthShell
-        title="Check your inbox"
-        subtitle="We sent a verification link to your email. Click it to activate your account, then sign in."
-      >
-        <div className="text-center py-4">
-          <div className="empty-state-icon mx-auto mb-4">
-            <Mail size={32} className="text-purple-400" />
-          </div>
-          <p className="text-slate-400 text-sm mb-6">
-            Sent to <span className="text-purple-300 font-medium">{form.email}</span>
-          </p>
-          <Link href="/login" className="btn-primary block text-center">
-            Go to Sign In
-          </Link>
-        </div>
-      </AuthShell>
-    )
-  }
-
   return (
     <AuthShell title="Create your account" subtitle="Join candidates and recruiters on the AI-powered talent platform.">
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        {(['candidate', 'recruiter'] as const).map(role => (
-          <button
-            key={role}
-            type="button"
-            onClick={() => setForm(f => ({ ...f, role }))}
-            className="flex flex-col items-center gap-2 p-4 rounded-xl transition-all"
-            style={{
-              border: `1px solid ${form.role === role ? '#a78bfa' : 'rgba(99,102,241,0.2)'}`,
-              background: form.role === role ? 'rgba(167,139,250,0.1)' : 'transparent',
-            }}
-          >
-            {role === 'candidate' ? (
-              <User size={22} color={form.role === role ? '#a78bfa' : '#475569'} />
-            ) : (
-              <Briefcase size={22} color={form.role === role ? '#a78bfa' : '#475569'} />
-            )}
-            <span
-              className="text-sm font-medium capitalize"
-              style={{ color: form.role === role ? '#a78bfa' : '#475569' }}
-            >
-              {role}
-            </span>
-          </button>
-        ))}
-      </div>
-
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div>
-          <label className="text-xs text-slate-400 mb-1 block uppercase tracking-wider">Full name</label>
+        <ErrorMessage message={error} />
+        <SuccessMessage message={success} />
+
+        <RoleSelector value={form.role} onChange={(role) => setForm((prev) => ({ ...prev, role }))} />
+
+        <InputField
+          label="Full name"
+          id="register-fullname"
+          placeholder="Your full name"
+          value={form.full_name}
+          autoComplete="name"
+          onChange={(full_name) => setForm((prev) => ({ ...prev, full_name }))}
+          error={validationErrors.full_name}
+          required
+        />
+
+        <InputField
+          label="Email"
+          id="register-email"
+          type="email"
+          placeholder="you@example.com"
+          value={form.email}
+          autoComplete="email"
+          onChange={(email) => setForm((prev) => ({ ...prev, email }))}
+          error={validationErrors.email}
+          required
+        />
+
+        <InputField
+          label="Password"
+          id="register-password"
+          type="password"
+          placeholder="Min 8 chars, 1 uppercase, 1 number"
+          value={form.password}
+          autoComplete="new-password"
+          onChange={(password) => setForm((prev) => ({ ...prev, password }))}
+          error={validationErrors.password}
+          required
+        />
+        <PasswordStrengthIndicator password={form.password} />
+
+        <InputField
+          label="Confirm password"
+          id="register-confirm-password"
+          type="password"
+          placeholder="Re-enter password"
+          value={form.confirmPassword}
+          autoComplete="new-password"
+          onChange={(confirmPassword) => setForm((prev) => ({ ...prev, confirmPassword }))}
+          error={validationErrors.confirmPassword}
+          required
+        />
+
+        <label className="flex items-start gap-2 text-sm text-slate-300">
           <input
-            className="input-field"
-            placeholder="Your full name"
-            value={form.full_name}
-            onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
-            required
+            type="checkbox"
+            checked={termsAccepted}
+            onChange={(e) => setTermsAccepted(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-slate-600 bg-slate-900"
           />
-        </div>
-        <div>
-          <label className="text-xs text-slate-400 mb-1 block uppercase tracking-wider">Email</label>
-          <input
-            className="input-field"
-            type="email"
-            placeholder="you@example.com"
-            value={form.email}
-            onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-            required
-          />
-        </div>
-        <div>
-          <label className="text-xs text-slate-400 mb-1 block uppercase tracking-wider">Password</label>
-          <input
-            className="input-field"
-            type="password"
-            placeholder="Min 8 chars, 1 uppercase, 1 number"
-            value={form.password}
-            onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-            required
-          />
-        </div>
-        <button type="submit" disabled={loading} className="btn-primary mt-2">
-          {loading ? 'Creating account…' : 'Create Account'}
+          <span>
+            I agree to the terms and conditions.
+            {validationErrors.terms ? <span className="block text-xs text-red-300">{validationErrors.terms}</span> : null}
+          </span>
+        </label>
+
+        <button type="submit" disabled={loading} className="btn-primary mt-1 flex items-center justify-center gap-2">
+          {loading ? (
+            <>
+              <LoadingSpinner />
+              Creating account...
+            </>
+          ) : (
+            'Create Account'
+          )}
         </button>
       </form>
-      <p className="text-center text-slate-400 text-sm mt-5">
+
+      <p className="mt-5 text-center text-sm text-slate-400">
         Already have an account?{' '}
-        <Link href="/login" className="text-purple-400 hover:text-purple-300 font-medium">
+        <Link href="/login" className="font-medium text-purple-400 hover:text-purple-300">
           Sign in
         </Link>
       </p>

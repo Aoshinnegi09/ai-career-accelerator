@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { clearTokens, getRefreshToken, getToken, saveTokens } from './auth'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -8,18 +9,56 @@ export const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('access_token')
-    if (token) config.headers.Authorization = `Bearer ${token}`
-  }
+  const token = getToken()
+  if (token) config.headers.Authorization = 'Bearer ' + token
   return config
 })
 
+let refreshPromise: Promise<string | null> | null = null
+
+const refreshAccessToken = async (): Promise<string | null> => {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const refreshToken = getRefreshToken()
+      if (!refreshToken) return null
+      try {
+        const { data } = await api.post<TokenResponse>('/auth/refresh', { refresh_token: refreshToken })
+        saveTokens(data.access_token, data.refresh_token)
+        return data.access_token
+      } catch {
+        clearTokens()
+        return null
+      } finally {
+        refreshPromise = null
+      }
+    })()
+  }
+  return refreshPromise
+}
+
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
+  async (err) => {
+    const originalRequest = err.config as (typeof err.config & { _retry?: boolean })
+    if (
+      err.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !String(originalRequest.url || '').includes('/auth/refresh')
+    ) {
+      originalRequest._retry = true
+      const nextAccessToken = await refreshAccessToken()
+      if (nextAccessToken) {
+        originalRequest.headers = {
+          ...originalRequest.headers,
+          Authorization: 'Bearer ' + nextAccessToken,
+        }
+        return api(originalRequest)
+      }
+    }
+
     if (err.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.clear()
+      clearTokens()
       window.location.href = '/login'
     }
     return Promise.reject(err)
