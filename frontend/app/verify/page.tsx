@@ -69,7 +69,7 @@ function VerifyContent() {
               Go to sign in
             </Link>
             {state === 'error' && (
-              <Link href="/register" className="text-purple-400 text-sm text-center hover:text-purple-300">
+              <Link href="/signup" className="text-purple-400 text-sm text-center hover:text-purple-300">
                 Create a new account
               </Link>
             )}

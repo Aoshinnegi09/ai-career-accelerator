@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { isLoggedIn, getRole } from '@/lib/auth'
+import { ensureValidToken, getRole } from '@/lib/auth'
 import Navbar from './Navbar'
 import AppBackground from './AppBackground'
 
@@ -13,16 +13,30 @@ interface Props {
 
 export default function DashboardLayout({ children, requiredRole }: Props) {
   const router = useRouter()
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    if (!isLoggedIn()) {
-      router.push('/login')
-      return
-    }
-    if (requiredRole && getRole() !== requiredRole) {
-      router.push(getRole() === 'recruiter' ? '/recruiter/dashboard' : '/dashboard')
+    let mounted = true
+    ensureValidToken().then((authed) => {
+      if (!mounted) return
+      if (!authed) {
+        router.replace('/login')
+        return
+      }
+      if (requiredRole && getRole() !== requiredRole) {
+        router.replace(getRole() === 'recruiter' ? '/recruiter/dashboard' : '/dashboard')
+        return
+      }
+      setReady(true)
+    })
+    return () => {
+      mounted = false
     }
   }, [requiredRole, router])
+
+  if (!ready) {
+    return <div className="min-h-screen flex items-center justify-center text-slate-400">Loading dashboard...</div>
+  }
 
   return (
     <div className="min-h-screen relative">
