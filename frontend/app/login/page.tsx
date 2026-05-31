@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
@@ -39,11 +39,6 @@ function LoginForm() {
       setSuccess('Email verified! Sign in to continue.')
     }
   }, [params])
-
-  const emailError = useMemo(() => {
-    if (!form.email) return ''
-    return emailPattern.test(form.email) ? '' : 'Please enter a valid email address.'
-  }, [form.email])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -90,7 +85,7 @@ function LoginForm() {
           autoComplete="email"
           value={form.email}
           onChange={(email) => setForm((prev) => ({ ...prev, email }))}
-          error={emailError || undefined}
+          error={form.email && !emailPattern.test(form.email) ? 'Please enter a valid email address.' : undefined}
           required
         />
 

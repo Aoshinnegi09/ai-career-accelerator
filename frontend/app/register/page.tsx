@@ -42,12 +42,19 @@ function RegisterForm() {
 
   const validationErrors = useMemo(() => {
     const next: Record<string, string> = {}
-    if (form.email && !emailPattern.test(form.email)) next.email = 'Please enter a valid email address.'
-    if (form.password && form.password.length < 8) next.password = 'Password must be at least 8 characters.'
-    if (form.password && !hasUpper(form.password)) next.password = 'Password must contain at least one uppercase letter.'
-    if (form.password && !hasDigit(form.password)) next.password = 'Password must contain at least one digit.'
-    if (form.confirmPassword && form.confirmPassword !== form.password) next.confirmPassword = 'Passwords do not match.'
-    if (form.full_name && form.full_name.trim().length < 2) next.full_name = 'Full name must be at least 2 characters.'
+    if (!form.full_name.trim()) next.full_name = 'Full name is required.'
+    else if (form.full_name.trim().length < 2) next.full_name = 'Full name must be at least 2 characters.'
+
+    if (!form.email.trim()) next.email = 'Email is required.'
+    else if (!emailPattern.test(form.email)) next.email = 'Please enter a valid email address.'
+
+    if (!form.password) next.password = 'Password is required.'
+    else if (form.password.length < 8) next.password = 'Password must be at least 8 characters.'
+    else if (!hasUpper(form.password)) next.password = 'Password must contain at least one uppercase letter.'
+    else if (!hasDigit(form.password)) next.password = 'Password must contain at least one digit.'
+
+    if (!form.confirmPassword) next.confirmPassword = 'Please confirm your password.'
+    else if (form.confirmPassword !== form.password) next.confirmPassword = 'Passwords do not match.'
     if (!termsAccepted) next.terms = 'Please accept the terms and conditions.'
     return next
   }, [form, termsAccepted])
@@ -56,11 +63,6 @@ function RegisterForm() {
     e.preventDefault()
     setError(null)
     setSuccess(null)
-
-    if (!form.full_name.trim() || !form.email.trim() || !form.password || !form.confirmPassword) {
-      setError('Please fill in all required fields.')
-      return
-    }
 
     if (Object.keys(validationErrors).length > 0) {
       setError(validationErrors[Object.keys(validationErrors)[0]])
