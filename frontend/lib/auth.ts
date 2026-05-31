@@ -6,6 +6,7 @@ interface JWTPayload {
   type: string; 
   exp: number 
 }
+type AppRole = 'candidate' | 'recruiter' | 'admin'
 
 const ACCESS_TOKEN_KEY = 'access_token'
 const REFRESH_TOKEN_KEY = 'refresh_token'
@@ -40,9 +41,16 @@ export const isTokenExpired = (token: string | null) => {
   return payload.exp * 1000 <= Date.now()
 }
 
-export const getRole = (): string | null => {
+const normalizeRole = (role: string | null): AppRole | null => {
+  if (!role) return null
+  if (role === 'hr') return 'recruiter'
+  if (role === 'candidate' || role === 'recruiter' || role === 'admin') return role
+  return null
+}
+
+export const getRole = (): AppRole | null => {
   const payload = decodeToken(getToken())
-  return payload?.role ?? null
+  return normalizeRole(payload?.role ?? null)
 }
 
 export const isLoggedIn = () => { 

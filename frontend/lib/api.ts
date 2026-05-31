@@ -69,7 +69,7 @@ api.interceptors.response.use(
 
 export interface User {
   id: number; email: string; full_name: string
-  role: 'candidate' | 'recruiter' | 'admin'
+  role: 'candidate' | 'recruiter' | 'hr' | 'admin'
   is_active: boolean; is_verified: boolean
 }
 

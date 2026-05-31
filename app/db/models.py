@@ -27,6 +27,7 @@ class Base(DeclarativeBase):
 class UserRole(str, enum.Enum):
     candidate = "candidate"
     recruiter = "recruiter"
+    hr        = "hr"  # legacy alias kept for backward compatibility
     admin     = "admin"
 
 

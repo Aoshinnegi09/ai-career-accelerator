@@ -121,6 +121,27 @@ def get_user_by_id(db: Session, user_id: int) -> Optional[User]:
     return db.query(User).filter(User.id == user_id).first()
 
 
+def normalize_role(role: UserRole) -> UserRole:
+    """Map legacy aliases to canonical roles."""
+    if role == UserRole.hr:
+        return UserRole.recruiter
+    return role
+
+
+def _migrate_legacy_role(db: Session, user: User) -> None:
+    """Best-effort in-place migration for legacy HR accounts."""
+    canonical_role = normalize_role(user.role)
+    if user.role == canonical_role:
+        return
+    user.role = canonical_role
+    try:
+        db.commit()
+        db.refresh(user)
+    except Exception as exc:
+        db.rollback()
+        logger.warning("Failed to migrate legacy role for user id=%d: %s", user.id, exc)
+
+
 def register_user(db: Session, payload: RegisterRequest) -> User:
     """
     Create a new user account.
@@ -137,6 +158,7 @@ def register_user(db: Session, payload: RegisterRequest) -> User:
 
     # Resolve role safely — accepts both enum instance and raw string
     role = payload.role if isinstance(payload.role, UserRole) else UserRole(payload.role)
+    role = normalize_role(role)
 
     user = User(
         email=payload.email.lower().strip(),
@@ -178,6 +200,7 @@ def authenticate_user(db: Session, email: str, password: str) -> User:
     if not user.is_active:
         raise InvalidCredentialsError("This account has been deactivated.")
 
+    _migrate_legacy_role(db, user)
     return user
 
 
