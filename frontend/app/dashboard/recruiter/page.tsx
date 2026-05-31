@@ -11,6 +11,10 @@ import StatusBadge from '@/components/dashboard/StatusBadge'
 import EmptyState from '@/components/common/EmptyState'
 import { useRecruiterDashboard } from '@/hooks/useDashboard'
 import { Match, JobPosting } from '@/lib/api'
+import { truncateText } from '@/utils/formatting'
+
+// Keep labels compact so line chart ticks remain readable on tablet widths.
+const MAX_JOB_TITLE_LENGTH = 18
 
 export default function RecruiterDashboardPage() {
   const { data, loading } = useRecruiterDashboard()
@@ -33,7 +37,7 @@ export default function RecruiterDashboardPage() {
   const topJobs = jobs
     .slice(0, 5)
     .map(job => ({
-      name: job.title.length > 18 ? `${job.title.slice(0, 18)}…` : job.title,
+      name: truncateText(job.title, MAX_JOB_TITLE_LENGTH),
       applications: matches.filter(match => match.job_id === job.id).length,
     }))
 

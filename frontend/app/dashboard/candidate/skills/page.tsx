@@ -11,6 +11,12 @@ interface SkillItem {
   status: 'not_started' | 'in_progress' | 'completed'
 }
 
+const STATUS_CLASS: Record<SkillItem['status'], string> = {
+  not_started: 'status-pending',
+  in_progress: 'status-reviewed',
+  completed: 'status-shortlisted',
+}
+
 export default function CandidateSkillsDashboardPage() {
   const [skills, setSkills] = useState<SkillItem[]>([])
 
@@ -39,7 +45,9 @@ export default function CandidateSkillsDashboardPage() {
               skills.map(skill => (
                 <div key={skill.id} className="p-3 rounded-lg bg-white/5 border border-indigo-500/20 flex justify-between items-center">
                   <span className="text-slate-200 text-sm">{skill.skill_name}</span>
-                  <span className="status-badge status-reviewed">{skill.status.replace('_', ' ')}</span>
+                  <span className={`status-badge ${STATUS_CLASS[skill.status]}`}>
+                    {skill.status.replace(/_/g, ' ')}
+                  </span>
                 </div>
               ))
             )}

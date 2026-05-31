@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { buildCookie, clearTokens } from './auth'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -37,8 +38,10 @@ api.interceptors.response.use(
               .then((response) => {
                 localStorage.setItem('access_token', response.data.access_token)
                 localStorage.setItem('refresh_token', response.data.refresh_token)
-                document.cookie = `access_token=${response.data.access_token}; Path=/; Max-Age=${response.data.expires_in}`
-                document.cookie = `refresh_token=${response.data.refresh_token}; Path=/; Max-Age=${60 * 60 * 24 * 30}`
+                // Client-side cookie tokens are required so Next middleware can read role-protected routes.
+                // Backend still validates tokens on API calls; consider migrating to HttpOnly cookies if backend auth supports it.
+                document.cookie = buildCookie('access_token', response.data.access_token, response.data.expires_in)
+                document.cookie = buildCookie('refresh_token', response.data.refresh_token, 60 * 60 * 24 * 30)
                 return response.data.access_token
               })
               .catch(() => null)
@@ -54,19 +57,13 @@ api.interceptors.response.use(
         return api(original)
       }
 
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
-      document.cookie = 'access_token=; Path=/; Max-Age=0'
-      document.cookie = 'refresh_token=; Path=/; Max-Age=0'
+      clearTokens()
       window.location.href = '/login'
       return Promise.reject(err)
     }
 
     if (err.response?.status === 401) {
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
-      document.cookie = 'access_token=; Path=/; Max-Age=0'
-      document.cookie = 'refresh_token=; Path=/; Max-Age=0'
+      clearTokens()
       window.location.href = '/login'
     }
 

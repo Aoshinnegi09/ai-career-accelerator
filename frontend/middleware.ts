@@ -1,18 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
-function decodeRole(token: string | undefined): string | null {
-  if (!token) return null
-  try {
-    const [, payload] = token.split('.')
-    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
-    const json = JSON.parse(atob(normalized)) as { role?: string; exp?: number }
-    if (!json.exp || json.exp * 1000 < Date.now()) return null
-    return json.role || null
-  } catch {
-    return null
-  }
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 function roleHome(role: string | null): string {
   if (role === 'recruiter') return '/dashboard/recruiter'
@@ -21,18 +10,30 @@ function roleHome(role: string | null): string {
   return '/dashboard/candidate'
 }
 
-export function middleware(request: NextRequest) {
+async function resolveRole(token: string): Promise<string | null> {
+  try {
+    const response = await fetch(`${API_URL}/auth/me`, {
+      headers: { Authorization: 'Bearer ' + token },
+      cache: 'no-store',
+    })
+    if (!response.ok) return null
+    const user = (await response.json()) as { role?: string }
+    return user.role || null
+  } catch {
+    return null
+  }
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   if (!pathname.startsWith('/dashboard')) return NextResponse.next()
 
   const token = request.cookies.get('access_token')?.value
-  const role = decodeRole(token)
+  if (!token) return NextResponse.redirect(new URL('/login', request.url))
 
-  if (!role) {
-    const loginUrl = new URL('/login', request.url)
-    return NextResponse.redirect(loginUrl)
-  }
+  const role = await resolveRole(token)
+  if (!role) return NextResponse.redirect(new URL('/login', request.url))
 
   if (pathname.startsWith('/dashboard/recruiter') && role !== 'recruiter') {
     return NextResponse.redirect(new URL(roleHome(role), request.url))

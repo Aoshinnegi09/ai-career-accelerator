@@ -12,10 +12,10 @@ export default function TopBar({ title, subtitle, crumbs = [], action }: Props) 
     <div className="mb-6">
       {crumbs.length > 0 && (
         <div className="text-xs text-slate-500 mb-2 flex gap-2 items-center flex-wrap">
-          {crumbs.map((crumb, index) => (
-            <span key={`${crumb.label}-${index}`} className="flex items-center gap-2">
+          {crumbs.map((crumb) => (
+            <span key={`${crumb.href || 'current'}-${crumb.label}`} className="flex items-center gap-2">
               {crumb.href ? <Link href={crumb.href} className="hover:text-slate-300">{crumb.label}</Link> : <span>{crumb.label}</span>}
-              {index < crumbs.length - 1 && <span>/</span>}
+              {crumb.label !== crumbs[crumbs.length - 1]?.label && <span>/</span>}
             </span>
           ))}
         </div>

@@ -32,15 +32,22 @@ export default function DataTable<T extends { id?: string | number }>({ columns,
               <td colSpan={columns.length} className="py-8 text-center text-slate-500">{emptyLabel}</td>
             </tr>
           ) : (
-            rows.map((row, index) => (
-              <tr key={(row.id as string | number | undefined) ?? index} className="border-b border-indigo-500/10 last:border-0">
-                {columns.map(col => (
-                  <td key={String(col.key)} className={`py-3 px-3 text-slate-200 ${col.className || ''}`}>
-                    {col.render ? col.render(row) : String(row[col.key as keyof T] ?? '—')}
-                  </td>
-                ))}
-              </tr>
-            ))
+            rows.map((row) => {
+              const firstColumnKey = String(columns[0]?.key || 'row')
+              const rowRecord = row as Record<string, unknown>
+              const fallbackKey = `${String(rowRecord[firstColumnKey] ?? 'row')}-${String(rowRecord.id ?? '')}`
+              const key = row.id ?? fallbackKey
+
+              return (
+                <tr key={String(key)} className="border-b border-indigo-500/10 last:border-0">
+                  {columns.map(col => (
+                    <td key={String(col.key)} className={`py-3 px-3 text-slate-200 ${col.className || ''}`}>
+                      {col.render ? col.render(row) : String(row[col.key as keyof T] ?? '—')}
+                    </td>
+                  ))}
+                </tr>
+              )
+            })
           )}
         </tbody>
       </table>

@@ -3,6 +3,9 @@
 import DashboardLayout from '@/components/dashboard/DashboardLayout'
 import ChartComponent from '@/components/dashboard/ChartComponent'
 import { useRecruiterDashboard } from '@/hooks/useDashboard'
+import { truncateText } from '@/utils/formatting'
+
+const MAX_CHART_LABEL_LENGTH = 14
 
 export default function RecruiterAnalyticsDashboardPage() {
   const { data } = useRecruiterDashboard()
@@ -31,7 +34,7 @@ export default function RecruiterAnalyticsDashboardPage() {
             yKey="value"
             color="#38bdf8"
             data={(data?.jobs || []).slice(0, 6).map(job => ({
-              job: job.title.length > 14 ? `${job.title.slice(0, 14)}…` : job.title,
+              job: truncateText(job.title, MAX_CHART_LABEL_LENGTH),
               value: matches.filter(match => match.job_id === job.id).length,
             }))}
           />
