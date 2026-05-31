@@ -15,7 +15,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const candidateLinks = [
-    { href: '/dashboard', label: 'Dashboard', icon: Home },
+    { href: '/dashboard/candidate', label: 'Dashboard', icon: Home },
     { href: '/score', label: 'Score', icon: FileText },
     { href: '/analytics', label: 'Analytics', icon: BarChart3 },
     { href: '/resumes', label: 'My Resumes', icon: Upload },
@@ -27,7 +27,7 @@ export default function Navbar() {
   ]
 
   const recruiterLinks = [
-    { href: '/recruiter/dashboard', label: 'Dashboard', icon: Home },
+    { href: '/dashboard/recruiter', label: 'Dashboard', icon: Home },
     { href: '/recruiter/jobs', label: 'My Jobs', icon: Briefcase },
     { href: '/recruiter/jobs/new', label: 'Post Job', icon: PlusCircle },
     { href: '/notifications', label: 'Alerts', icon: Bell },
@@ -36,7 +36,7 @@ export default function Navbar() {
   const adminLinks = [{ href: '/admin', label: 'Admin Panel', icon: Shield }]
   const baseLinks = role === 'recruiter' ? recruiterLinks : candidateLinks
   const links = role === 'admin' ? [...baseLinks, ...adminLinks] : baseLinks
-  const homeHref = role === 'recruiter' ? '/recruiter/dashboard' : '/dashboard'
+  const homeHref = role === 'recruiter' ? '/dashboard/recruiter' : '/dashboard/candidate'
 
   const isActive = (href: string) =>
     pathname === href || (href !== homeHref && pathname.startsWith(href + '/'))

@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { isLoggedIn, getRole } from '@/lib/auth'
+import { getDefaultDashboard } from '@/utils/auth'
 import Navbar from './Navbar'
 import AppBackground from './AppBackground'
 
@@ -20,7 +21,7 @@ export default function DashboardLayout({ children, requiredRole }: Props) {
       return
     }
     if (requiredRole && getRole() !== requiredRole) {
-      router.push(getRole() === 'recruiter' ? '/recruiter/dashboard' : '/dashboard')
+      router.push(getDefaultDashboard(getRole() || 'candidate'))
     }
   }, [requiredRole, router])
 

@@ -10,18 +10,66 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('access_token')
-    if (token) config.headers.Authorization = `Bearer ${token}`
+    if (token) config.headers.Authorization = 'Bearer ' + token
   }
   return config
 })
 
+let refreshPromise: Promise<string | null> | null = null
+
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
-    if (err.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.clear()
+  async (err) => {
+    if (typeof window === 'undefined') return Promise.reject(err)
+
+    const original = err.config || {}
+    const isAuthCall = original.url?.includes('/auth/login') || original.url?.includes('/auth/refresh')
+    const shouldRefresh = err.response?.status === 401 && !original._retry && !isAuthCall
+
+    if (shouldRefresh) {
+      original._retry = true
+
+      if (!refreshPromise) {
+        const refreshToken = localStorage.getItem('refresh_token')
+        refreshPromise = refreshToken
+          ? axios
+              .post<TokenResponse>(`${API_URL}/auth/refresh`, { refresh_token: refreshToken })
+              .then((response) => {
+                localStorage.setItem('access_token', response.data.access_token)
+                localStorage.setItem('refresh_token', response.data.refresh_token)
+                document.cookie = `access_token=${response.data.access_token}; Path=/; Max-Age=${response.data.expires_in}`
+                document.cookie = `refresh_token=${response.data.refresh_token}; Path=/; Max-Age=${60 * 60 * 24 * 30}`
+                return response.data.access_token
+              })
+              .catch(() => null)
+          : Promise.resolve(null)
+      }
+
+      const nextAccessToken = await refreshPromise
+      refreshPromise = null
+
+      if (nextAccessToken) {
+        original.headers = original.headers || {}
+        original.headers.Authorization = 'Bearer ' + nextAccessToken
+        return api(original)
+      }
+
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      document.cookie = 'access_token=; Path=/; Max-Age=0'
+      document.cookie = 'refresh_token=; Path=/; Max-Age=0'
+      window.location.href = '/login'
+      return Promise.reject(err)
+    }
+
+    if (err.response?.status === 401) {
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      document.cookie = 'access_token=; Path=/; Max-Age=0'
+      document.cookie = 'refresh_token=; Path=/; Max-Age=0'
       window.location.href = '/login'
     }
+
     return Promise.reject(err)
   }
 )
@@ -30,7 +78,7 @@ api.interceptors.response.use(
 
 export interface User {
   id: number; email: string; full_name: string
-  role: 'candidate' | 'recruiter' | 'admin'
+  role: 'candidate' | 'recruiter' | 'applicant' | 'admin'
   is_active: boolean; is_verified: boolean
 }
 
@@ -101,6 +149,29 @@ export interface CandidateAnalytics {
   avg_score:      number
   best_score:     number
   match_stats:    Record<string, number>
+}
+
+export interface SkillProgressItem {
+  id: number
+  skill_name: string
+  status: 'not_started' | 'in_progress' | 'completed'
+  notes?: string
+  resource_url?: string
+}
+
+export interface SkillStats {
+  total: number
+  completed: number
+  in_progress: number
+  not_started: number
+  completion_rate: number
+}
+
+export interface CoachMessage {
+  id: number
+  role: 'user' | 'assistant'
+  content: string
+  created_at: string
 }
 
 export interface RecruiterAnalytics {
@@ -217,6 +288,15 @@ export const analyticsApi = {
   candidate: (days = 90) => api.get<CandidateAnalytics>(`/analytics/candidate?days=${days}`),
   recruiter: () => api.get<RecruiterAnalytics>('/analytics/recruiter'),
   admin:     () => api.get<AdminStats>('/analytics/admin'),
+}
+
+export const skillsApi = {
+  list:  () => api.get<SkillProgressItem[]>('/skills'),
+  stats: () => api.get<SkillStats>('/skills/stats'),
+}
+
+export const coachApi = {
+  history: () => api.get<CoachMessage[]>('/coach/history'),
 }
 
 export const adminApi = {
